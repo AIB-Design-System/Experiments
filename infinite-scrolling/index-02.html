@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes ios-spinner {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .ios-spinner {
+            display: inline-block;
+            position: relative;
+            width: 40px;
+            height: 40px;
+        }
+        .ios-spinner div {
+            transform-origin: 20px 20px;
+            animation: ios-spinner 1.2s linear infinite;
+        }
+        .ios-spinner div:after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 2px;
+            left: 18px;
+            width: 4px;
+            height: 12px;
+            border-radius: 20%;
+            background: #333;
+        }
+        .ios-spinner div:nth-child(1) { transform: rotate(0deg); animation-delay: -1.1s; }
+        .ios-spinner div:nth-child(2) { transform: rotate(30deg); animation-delay: -1s; }
+        .ios-spinner div:nth-child(3) { transform: rotate(60deg); animation-delay: -0.9s; }
+        .ios-spinner div:nth-child(4) { transform: rotate(90deg); animation-delay: -0.8s; }
+        .ios-spinner div:nth-child(5) { transform: rotate(120deg); animation-delay: -0.7s; }
+        .ios-spinner div:nth-child(6) { transform: rotate(150deg); animation-delay: -0.6s; }
+        .ios-spinner div:nth-child(7) { transform: rotate(180deg); animation-delay: -0.5s; }
+        .ios-spinner div:nth-child(8) { transform: rotate(210deg); animation-delay: -0.4s; }
+        .ios-spinner div:nth-child(9) { transform: rotate(240deg); animation-delay: -0.3s; }
+        .ios-spinner div:nth-child(10) { transform: rotate(270deg); animation-delay: -0.2s; }
+        .ios-spinner div:nth-child(11) { transform: rotate(300deg); animation-delay: -0.1s; }
+        .ios-spinner div:nth-child(12) { transform: rotate(330deg); animation-delay: 0s; }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-md mx-auto bg-white p-4 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-bold mb-4">Standing Order</h2>
+        <div id="transactionsContainer" class="space-y-6 overflow-y-auto h-[75vh]">
+            <div id="transactionsList"></div>
+            <div id="loadingSpinner" class="hidden flex justify-center items-center py-4">
+                <div class="ios-spinner">
+                    <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+                </div>
+            </div>
+        </div>
+        <div id="toast" class="toast">10 new transactions loaded</div>
+    </div>
+    <script>
+        const transactionsContainer = document.getElementById('transactionsContainer');
+        const transactionsList = document.getElementById('transactionsList');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const toast = document.getElementById('toast');
+        let transactionIndex = 1;
+        const transactionsPerLoad = 10;
+        let isLoading = false;
+        let lastScrollTime = 0;
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1500);
+        }
+
+        function generateTransaction(index) {
+            return `<div class="bg-gray-50 p-4 rounded-lg mt-2">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-purple-200 flex items-center justify-center rounded-full">
+                            <span class="text-purple-700 font-bold">📆</span>
+                        </div>
+                        <div>
+                            <p class="font-semibold">Standing Order #${index}</p>
+                            <p class="text-sm text-gray-500">00:00 • Bank transfer</p>
+                        </div>
+                    </div>
+                    <p class="${index % 2 === 0 ? 'text-red-500' : 'text-green-500'}">
+                        ${index % 2 === 0 ? '-' : ''}€${(Math.random() * 1000).toFixed(2)}
+                    </p>
+                </div>
+            </div>`;
+        }
+
+        function loadTransactions(count) {
+            let fragment = document.createDocumentFragment();
+            for (let i = 0; i < count; i++) {
+                let div = document.createElement('div');
+                div.innerHTML = generateTransaction(transactionIndex++);
+                fragment.appendChild(div.firstChild);
+            }
+            transactionsList.appendChild(fragment);
+            showToast(`${count} new transactions loaded`);
+        }
+
+        function loadMoreTransactions(forceSpinner = false) {
+            if (isLoading) return;
+            isLoading = true;
+            if (forceSpinner) loadingSpinner.classList.remove('hidden');
+            setTimeout(() => {
+                if (forceSpinner) loadingSpinner.classList.add('hidden');
+                loadTransactions(transactionsPerLoad);
+                isLoading = false;
+            }, forceSpinner ? 1000 : 100);
+        }
+
+        transactionsContainer.addEventListener('scroll', () => {
+            const now = Date.now();
+            const deltaTime = now - lastScrollTime;
+            lastScrollTime = now;
+
+            const remainingItems = (transactionsContainer.scrollHeight - transactionsContainer.scrollTop - transactionsContainer.clientHeight) / 50;
+
+            if (!isLoading && remainingItems < 6) {
+                loadMoreTransactions(deltaTime < 100);
+            }
+        });
+
+        loadTransactions(transactionsPerLoad);
+    </script>
+</body>
+</html>
